@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'workers.apps.WorkersConfig',
     'companies.apps.CompaniesConfig',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -111,6 +112,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
 
 AUTH_USER_MODEL = 'users.UserAccount'
 

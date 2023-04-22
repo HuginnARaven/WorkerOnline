@@ -18,7 +18,7 @@ class Qualification(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)
 
     def __str__(self):
-        return self.name
+        return f"{self.name}({self.company.name})"
 
 
 class Task(models.Model):
@@ -27,9 +27,10 @@ class Task(models.Model):
     hours = models.IntegerField(null=False)
 
     difficulty = models.ForeignKey(Qualification, on_delete=models.CASCADE, null=False)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)
 
     def __str__(self):
-        return self.title
+        return f"{self.title}({self.company.name})"
 
 # TODO: make IoT model logic
 # class Supervisor(models.Model):
