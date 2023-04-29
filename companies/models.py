@@ -1,14 +1,22 @@
 from django.db import models
+import pytz
 
 from users.models import UserAccount
 
 
+# TODO: create timezone field and get_timezone method
 class Company(UserAccount):
+    TIMEZONE_CHOICES = zip(pytz.all_timezones, pytz.all_timezones)
+
     name = models.CharField(max_length=100, null=False)
     description = models.TextField(null=True, blank=True)
+    timezone = models.CharField(max_length=255, default='UTC', choices=TIMEZONE_CHOICES)
 
     def __str__(self):
-        return f"{self.name}({self.username})"
+        return f"{self.name}({self.username}) ({pytz.timezone(self.timezone)})"
+
+    def get_timezone(self):
+        return pytz.timezone(self.timezone)
 
 
 class Qualification(models.Model):

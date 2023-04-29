@@ -7,10 +7,10 @@ class IsCompany(permissions.BasePermission):
             return True
         return False
 
-    def has_object_permission(self, request, view, obj):
-        if obj.company.id == request.user.id:
-            return True
-        return False
+    # def has_object_permission(self, request, view, obj):
+    #     if obj.company.id == request.user.id:
+    #         return True
+    #     return False
 
 
 class IsCompanyWorker(permissions.BasePermission):
@@ -24,5 +24,12 @@ class IsCompanyWorker(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         if obj.employer.id == request.user.id:
+            return True
+        return False
+
+
+class IsWorker(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.user.role == 'W':
             return True
         return False

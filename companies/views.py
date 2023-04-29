@@ -1,12 +1,14 @@
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, viewsets, status, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
-from companies.models import Company, Qualification
-from companies.serializers import CompanySerializer, WorkerSerializer, QualificationSerializer
+from companies.models import Company, Qualification, Task
+from companies.serializers import CompanySerializer, WorkerSerializer, QualificationSerializer, TaskSerializer, \
+    TaskAppointmentSerializer, WorkerLogSerializer
 from permission.permission import IsCompany, IsCompanyWorker
-from workers.models import Worker
+from workers.models import Worker, WorkersTasks, WorkerLogs
 
 
 class CompanySinUpView(mixins.CreateModelMixin, GenericViewSet):
@@ -32,3 +34,35 @@ class QualificationView(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(company=self.request.user.id)
+
+
+class TaskView(viewsets.ModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(company=self.request.user.id)
+
+
+class TaskAppointmentView(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+    queryset = WorkersTasks.objects.all()
+    serializer_class = TaskAppointmentSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(task_appointed__company=self.request.user.id, )
+
+
+class WorkerLogView(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+    queryset = WorkerLogs.objects.all()
+    serializer_class = WorkerLogSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['date', 'time', 'worker']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(task__company=self.request.user.id)
