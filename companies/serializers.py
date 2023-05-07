@@ -1,5 +1,6 @@
 import datetime
 
+import pytz
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
@@ -266,6 +267,8 @@ class TaskAppointmentSerializer(serializers.ModelSerializer):
 class WorkerLogSerializer(serializers.ModelSerializer):
     task_info = TaskSerializer(read_only=True, source="task")
     worker_info = WorkerSerializer(read_only=True, source="worker")
+    datetime = serializers.DateTimeField(read_only=True)
+    localized_datetime = serializers.SerializerMethodField()
 
     class Meta:
         model = WorkerLogs
@@ -273,6 +276,8 @@ class WorkerLogSerializer(serializers.ModelSerializer):
             'id',
             'date',
             'time',
+            'datetime',
+            'localized_datetime',
             'type',
             'description',
             'worker',
@@ -280,3 +285,8 @@ class WorkerLogSerializer(serializers.ModelSerializer):
             'task',
             'task_info',
         ]
+
+    def get_localized_datetime(self, obj):
+        localized_datetime = timezone.localtime(obj.datetime, obj.worker.employer.get_timezone())
+        return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
+

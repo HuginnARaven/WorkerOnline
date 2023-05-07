@@ -7,8 +7,6 @@ from users.models import UserAccount
 from companies.models import Company, Task, Qualification
 
 
-# TODO: працівники можуть переглядати свої дані через мобільний додаток
-# TODO: можливість співробітниками компанії переглядати свої завдання та змінювати їх статус через мобільний додаток
 # TODO: можливість співробітниками компанії отримувати фідбек від роботодавця щодо своїх завдань через мобільний додаток
 class Worker(UserAccount):
     first_name = models.CharField(max_length=100, null=False)
@@ -35,11 +33,16 @@ class WorkerLogs(models.Model):
     ]
     date = models.DateField(null=False, auto_now_add=True)
     time = models.TimeField(null=False, auto_now_add=True)
+    datetime = models.DateTimeField(null=False, auto_now_add=True)
     type = models.CharField(max_length=2, null=False, choices=LOG_TYPES, default='CL')
     description = models.TextField(null=True, blank=True)
 
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, null=False)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, null=False)
+
+    def get_time_with_timezone(self):
+        time_with_timezone = datetime.datetime.combine(self.date, self.time)
+        return self
 
     def __str__(self):
         return f"{self.date}({self.time})"

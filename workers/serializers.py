@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from companies.serializers import TaskSerializer
-from workers.models import WorkersTasks
+from workers.models import WorkersTasks, WorkerLogs
 
 
 class TaskDoneSerializer(serializers.ModelSerializer):
@@ -36,3 +36,26 @@ class TaskDoneSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class WorkersLogSerializer(serializers.ModelSerializer):
+    task_info = TaskSerializer(read_only=True, source="task")
+    localized_datetime = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WorkerLogs
+        fields = [
+            'id',
+            'date',
+            'time',
+            'localized_datetime',
+            'type',
+            'description',
+            'task',
+            'task_info',
+        ]
+
+    def get_localized_datetime(self, obj):
+        localized_datetime = timezone.localtime(obj.datetime, obj.worker.employer.get_timezone())
+        return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
+

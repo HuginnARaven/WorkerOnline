@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
+import django_filters.rest_framework
 from rest_framework import generics, viewsets, status, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
@@ -61,7 +62,7 @@ class WorkerLogView(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericVie
     serializer_class = WorkerLogSerializer
     permission_classes = [IsAuthenticated, IsCompany, ]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['date', 'time', 'worker']
+    filterset_fields = ['worker', 'datetime__date', 'type']
 
     def get_queryset(self):
         qs = super().get_queryset()
