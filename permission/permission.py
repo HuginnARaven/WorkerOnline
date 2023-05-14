@@ -33,3 +33,17 @@ class IsWorker(permissions.BasePermission):
         if request.user.role == 'W':
             return True
         return False
+
+
+class IsAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.user.role == 'A':
+            return True
+        return False
+
+
+class IsIot(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.META.get("HTTP_SERIAL_NUMBER") == obj.serial_number:
+            return True
+        return False

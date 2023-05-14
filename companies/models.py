@@ -38,14 +38,3 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.title}({self.company.name})"
-
-# TODO: make IoT model logic
-# class Supervisor(models.Model):
-#     name = models.CharField(max_length=100, null=False)
-#     is_active = models.BooleanField(default=False, null=True)
-#
-#     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)
-#     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, null=True)
-#
-#     def __str__(self):
-#         return self.name

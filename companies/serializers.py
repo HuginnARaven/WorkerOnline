@@ -171,6 +171,7 @@ class WorkerSerializer(serializers.ModelSerializer):
             salary=validated_data['salary'],
         )
 
+
     def update(self, instance, validated_data):
         password = validated_data.get('password')
         password2 = validated_data.get('password2')
