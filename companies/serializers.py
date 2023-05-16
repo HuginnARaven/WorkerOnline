@@ -6,6 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.fields import Field
+from django.core import serializers as core_serializers
 
 from companies.models import Company, Qualification, Task
 from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment
@@ -321,3 +322,49 @@ class WorkerTaskCommentSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class TaskRecommendationSerializer(serializers.ModelSerializer):
+    recommended_workers = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Task
+        fields = [
+            'id',
+            'title',
+            'recommended_workers',
+        ]
+
+    def get_recommended_workers(self, obj):
+        estimate_hours = obj.estimate_hours
+        difficulty = obj.difficulty
+        company = obj.company
+        workers = Worker.objects.filter(working_hours__gte=estimate_hours,
+                                        qualification=difficulty,
+                                        employer=company).order_by("-productivity")
+        if not workers:
+            workers = Worker.objects.filter(working_hours__gte=estimate_hours,
+                                            qualification__modifier__gte=difficulty.modifier,
+                                            employer=company).order_by("-productivity")
+        if not workers:
+            return 'There are no workers to recommend for this task!'
+        result = []
+        for worker in workers:
+            if not TaskAppointment.objects.filter(is_done=False, worker_appointed=worker):
+                result.append({
+                    "id": worker.id,
+                    "first_name": worker.first_name,
+                    "last_name": worker.last_name,
+                    "productivity": worker.productivity,
+                    "working_hours": worker.working_hours,
+                })
+        if not result:
+            return f'There are no workers to recommend for this task for now!' \
+                   f'(probably some workers that can be recommended are busy now)'
+        return result
+        # workers_serialize = core_serializers.serialize('python', workers)
+        # workers_serialize_result = []
+        # for worker in workers_serialize:
+        #     if not TaskAppointment.objects.filter(is_done=False, worker_appointed_id=int(worker.get("pk"))):
+        #         workers_serialize_result.append(worker.get("fields"))
+        # return workers_serialize_result

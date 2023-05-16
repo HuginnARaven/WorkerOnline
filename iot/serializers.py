@@ -1,7 +1,11 @@
+import datetime
+
+import pytz
 from rest_framework import serializers
+from rest_framework.response import Response
 
 from iot.models import Supervisor
-from workers.models import Worker
+from workers.models import Worker, WorkerLogs, TaskAppointment
 
 
 class SupervisorOptionsSerializer(serializers.ModelSerializer):
@@ -52,4 +56,41 @@ class SupervisorCompanySerializer(serializers.ModelSerializer):
             in_admin_mode=validated_data['in_admin_mode'] or False,
             worker=validated_data['worker'] or None,
             company=self.context['request'].user.company,
+        )
+
+
+class SendActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supervisor
+        fields = []
+
+    def update(self, instance, validated_data):
+        instance.is_active = True
+
+        instance.save()
+
+        return instance
+
+
+class WorkerPresenceLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkerLogs
+        fields = [
+            "type",
+            "description"
+        ]
+
+    def create(self, validated_data):
+        supervisor = Supervisor.objects.get(serial_number=self.context['request'].META.get("HTTP_SERIAL_NUMBER"))
+        supervisor_worker = supervisor.worker
+        worker_curr_task = TaskAppointment.objects.filter(is_done=False, worker_appointed=supervisor_worker).first()
+        if not supervisor_worker:
+            raise serializers.ValidationError({'detail': 'The IoT does not have assigned worker!'})
+        if not worker_curr_task:
+            raise serializers.ValidationError({'detail': 'The assigned worker does not have task now!'})
+        return WorkerLogs.objects.create(
+            type=validated_data.get("type"),
+            description=validated_data.get("description"),
+            worker=supervisor_worker,
+            task=worker_curr_task.task_appointed
         )
