@@ -83,9 +83,8 @@ class TaskAppointment(models.Model):
             elif time_end.time() > worker_day_end.time():
                 overtime = datetime.datetime.combine(datetime.date.today(),  time_end.time()) - worker_day_end
                 task_timediff = task_timediff - overtime
-
-            result = self.task_appointed.estimate_hours / (task_timediff.total_seconds() / 3600)
-            if result > 0:
+            if (task_timediff.total_seconds() / 3600) > 0:
+                result = self.task_appointed.estimate_hours / (task_timediff.total_seconds() / 3600)
                 return result
 
         return self.worker_appointed.productivity

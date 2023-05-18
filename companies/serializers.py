@@ -368,3 +368,47 @@ class TaskRecommendationSerializer(serializers.ModelSerializer):
         #     if not TaskAppointment.objects.filter(is_done=False, worker_appointed_id=int(worker.get("pk"))):
         #         workers_serialize_result.append(worker.get("fields"))
         # return workers_serialize_result
+
+
+class WorkerReportSerializer(serializers.ModelSerializer):
+    worker_general_statistics = serializers.SerializerMethodField()
+    worker_tasks_statistics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Worker
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            "worker_general_statistics",
+            "worker_tasks_statistics",
+        ]
+
+    def get_worker_general_statistics(self, obj):
+        worker_logs = WorkerLogs.objects.filter(worker=obj)
+        result = {
+            "tasks_done": worker_logs.filter(type__exact="TD").count(),
+            "times_out_of_working_place": worker_logs.filter(type__exact="OC").count()
+        }
+
+        return result
+
+    def get_worker_tasks_statistics(self, obj):
+        worker_tasks_appointments = TaskAppointment.objects.filter(worker_appointed=obj, is_done=True)
+
+        result = []
+        for task_appointment in worker_tasks_appointments:
+            logs = WorkerLogs.objects.filter(task=task_appointment.task_appointed)
+            result.append({
+                "title": task_appointment.task_appointed.title,
+                "estimate_hours": task_appointment.task_appointed.estimate_hours,
+                "times_out_of_working_place": logs.filter(type__exact="OC").count(),
+                "task_performance": task_appointment.get_task_performance(),
+                "spent_working_hours": (task_appointment.task_appointed.estimate_hours / task_appointment.get_task_performance()),
+                "time_start": timezone.localtime(task_appointment.time_start, task_appointment.worker_appointed.employer.get_timezone()).strftime('%Y-%m-%d %H:%M:%S'),
+                "time_end": timezone.localtime(task_appointment.time_end, task_appointment.worker_appointed.employer.get_timezone()).strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        return result
