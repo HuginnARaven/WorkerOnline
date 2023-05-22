@@ -1,9 +1,10 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from companies.models import Company
-from users.models import UserAccount
+from users.models import UserAccount, TechSupportRequest
 from workers.models import Worker
 
 
@@ -72,3 +73,56 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
 
         return instance
 
+
+class TechSupportRequestSerializer(serializers.ModelSerializer):
+    admin_response = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True, source='get_status_display')
+    localized_created_at = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = TechSupportRequest
+        fields = [
+            'id',
+            'title',
+            'description',
+            'admin_response',
+            'status',
+            'localized_created_at',
+        ]
+
+    def get_localized_created_at(self, obj):
+        if obj.user.role == 'C':
+            localized_datetime = timezone.localtime(obj.time_created, obj.user.company.get_timezone())
+        elif obj.user.role == 'W':
+            localized_datetime = timezone.localtime(obj.time_created, obj.user.worker.emploer.get_timezone())
+        else:
+            localized_datetime = obj.time_created
+
+        return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+    def create(self, validated_data):
+        if TechSupportRequest.objects.filter(user=self.context['request'].user, status='CR').count() >= 3:
+            raise serializers.ValidationError({'detail': [_('You have too many unread requests!')]})
+        return TechSupportRequest.objects.create(
+            title=validated_data['title'],
+            description=validated_data['description'],
+            user=self.context['request'].user,
+        )
+
+    def update(self, instance, validated_data):
+        errors = {}
+        if validated_data.get('title') and instance.status != 'CR':
+            errors.update({'title': [_('You can not change title of request when it is viewed or closed!')]})
+
+        if validated_data.get('description') and instance.status != 'CR':
+            errors.update({'description': [_('You can not change description of request when it is viewed or closed!')]})
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        instance.title = validated_data.get('title') or instance.title
+        instance.description = validated_data.get('description') or instance.description
+
+        instance.save()
+
+        return instance

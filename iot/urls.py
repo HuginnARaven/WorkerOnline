@@ -1,10 +1,12 @@
 from django.urls import path, include
 from rest_framework import routers
 
-from iot.views import SupervisorCompanyView, SupervisorOptionsView, SupervisorActivityView, WorkerPresenceLogView
+from iot.views import SupervisorCompanyView, SupervisorOptionsView, SupervisorActivityView, WorkerPresenceLogView, \
+    OfferCompanyView
 
 iot_router = routers.SimpleRouter()
 iot_router.register(r'company-options', SupervisorCompanyView, basename='company-options')
+iot_router.register(r'company-offer', OfferCompanyView, basename='company-offer')
 
 urlpatterns = [
     path('iot/', include(iot_router.urls)),

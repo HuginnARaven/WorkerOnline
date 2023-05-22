@@ -1,11 +1,12 @@
 import datetime
 
 import pytz
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.utils.translation import gettext_lazy as _
 
-from iot.models import Supervisor
+from iot.models import Supervisor, Offer
 from workers.models import Worker, WorkerLogs, TaskAppointment
 
 
@@ -58,6 +59,50 @@ class SupervisorCompanySerializer(serializers.ModelSerializer):
             worker=validated_data['worker'] or None,
             company=self.context['request'].user.company,
         )
+
+
+class OfferSerializer(serializers.ModelSerializer):
+    status = serializers.CharField(read_only=True, source='get_status_display')
+    localized_created_at = serializers.SerializerMethodField(read_only=True)
+    last_changed = serializers.DateTimeField(read_only=True)
+    localized_last_changed = serializers.SerializerMethodField(read_only=True)
+    comment = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Offer
+        fields = [
+            "status",
+            "created_at",
+            "localized_created_at",
+            "last_changed",
+            "localized_last_changed",
+            "address_of_delivery",
+            "comment",
+        ]
+
+    def get_localized_created_at(self, obj):
+        localized_datetime = timezone.localtime(obj.created_at, obj.company.get_timezone())
+        return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+    def get_localized_last_changed(self, obj):
+        localized_datetime = timezone.localtime(obj.last_changed, obj.company.get_timezone())
+        return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+    def create(self, validated_data):
+        return Offer.objects.create(
+            address_of_delivery=validated_data['address_of_delivery'],
+            company=self.context['request'].user.company,
+        )
+
+    def update(self, instance, validated_data):
+        if validated_data.get('address_of_delivery') and validated_data.get('address_of_delivery') != instance.address_of_delivery and instance.status not in ['CR', 'RC', 'IC']:
+            raise serializers.ValidationError({'address_of_delivery': [_('You can not change address of delivery for offer at that stage!')]})
+
+        instance.address_of_delivery = validated_data.get('address_of_delivery') or instance.address_of_delivery
+
+        instance.save()
+
+        return instance
 
 
 class SendActivitySerializer(serializers.ModelSerializer):

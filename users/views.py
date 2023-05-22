@@ -1,39 +1,16 @@
 from django.shortcuts import render
 from rest_framework import generics, viewsets, status, mixins
-from rest_framework import status
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.authtoken.models import Token
-from rest_framework.views import APIView
 from django.utils.translation import gettext_lazy as _
+from rest_framework.viewsets import GenericViewSet
 
 from companies.models import Company
-from users.models import UserAccount
+from users.models import UserAccount, TechSupportRequest
 from users.serializers import UserAccountSerializer, CompanyProfileSerializer, WorkerProfileSerializer, \
-    ChangePasswordSerializer
+    ChangePasswordSerializer, TechSupportRequestSerializer
 from workers.models import Worker
-
-
-class LogInView(ObtainAuthToken):
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'role': user.role
-        })
-
-
-class LogOutView(APIView):
-    def post(self, request, format=None):
-        request.auth.delete()
-        return Response(status=status.HTTP_200_OK)
 
 
 class ChangePasswordView(generics.UpdateAPIView):
@@ -82,3 +59,13 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         queryset = self.get_queryset()
         obj = get_object_or_404(queryset, id=self.request.user.id)
         return obj
+
+
+class TechSupportRequestView(viewsets.ModelViewSet, GenericViewSet):
+    queryset = TechSupportRequest.objects.all()
+    serializer_class = TechSupportRequestSerializer
+    permission_classes = [IsAuthenticated, ]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(user=self.request.user)

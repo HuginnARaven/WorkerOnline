@@ -24,3 +24,29 @@ class Supervisor(models.Model):
 
     def __str__(self):
         return f"Supervisor #{self.id}({self.company.name})"
+
+
+class Offer(models.Model):
+    OFFER_SATUS = [
+        ('CR', _('Created')),
+        ('RC', _('Received')),
+        ('IC', _('IoT creating')),
+        ('DL', _('Delivering')),
+        ('CM', _('Completed')),
+        ('RJ', _('Rejected')),
+    ]
+    status = models.CharField(max_length=2, choices=OFFER_SATUS, default='CR')
+    last_changed = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)
+    address_of_delivery = models.CharField(max_length=255)
+    comment = models.TextField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('offer')
+        verbose_name_plural = _('offers')
+
+    def __str__(self):
+        return f"Offer #{self.id}({self.company.name})"
+
+

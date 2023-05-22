@@ -414,3 +414,107 @@ class WorkerReportSerializer(serializers.ModelSerializer):
             })
 
         return result
+
+
+class AutoAppointmentSerializer(serializers.ModelSerializer):
+    workers = serializers.SerializerMethodField(read_only=True)
+    tasks = serializers.SerializerMethodField(read_only=True)
+    previous_appointments = serializers.SerializerMethodField(read_only=True)
+    new_appointments = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Company
+        fields = [
+            "tasks",
+            "workers",
+            "previous_appointments",
+            "new_appointments",
+        ]
+
+    def get_workers(self, obj):
+        workers = Worker.objects.filter(employer=obj).order_by("-productivity")
+        result = []
+        for worker in workers:
+            result.append({
+                "id": worker.id,
+                "username": worker.username,
+                "working_hours": worker.working_hours,
+                "qualification_modifier": worker.qualification.modifier,
+                "productivity": worker.productivity,
+            })
+
+        return result
+
+    def get_tasks(self, obj):
+        tasks = Task.objects.filter(company=obj)
+        result = []
+        for task in tasks:
+            result.append({
+                "id": task.id,
+                "title": task.title,
+                "estimate_hours": task.estimate_hours,
+                "difficulty_modifier": task.difficulty.modifier,
+            })
+
+        return result
+
+
+    def get_previous_appointments(self, obj):
+        appointments = TaskAppointment.objects.filter(task_appointed__company=obj)
+        result = []
+        for appointment in appointments:
+            result.append({
+                "task_id": appointment.task_appointed_id,
+                "worker_id": appointment.worker_appointed_id,
+            })
+
+        return result
+
+    def get_new_appointments(self, obj):
+        is_save_mode = self.context['request'].query_params.get("is_save_mode") != 'false'
+        sorted_workers = Worker.objects.filter(employer=obj).order_by("-productivity")
+        tasks = Task.objects.filter(company=obj)
+        assigned_tasks = []
+        assignment_steps = []
+        assigned_workers = set()
+
+        result = {
+            "assigned_tasks": assigned_tasks,
+            "steps": assignment_steps
+        }
+
+        i = 0
+        for task in tasks:
+            if not TaskAppointment.objects.filter(task_appointed=task):
+                chosen_worker = None
+
+                for worker in sorted_workers:
+                    if not TaskAppointment.objects.filter(is_done=False, worker_appointed=worker) \
+                            and worker not in assigned_workers \
+                            and task.difficulty.modifier <= worker.qualification.modifier \
+                            and task.estimate_hours <= worker.working_hours:
+                        chosen_worker = worker
+                        break
+
+                if chosen_worker:
+                    if i == 0:
+                        assignment_steps.append({
+                            "step": i,
+                            "assigned_tasks": []
+                        })
+                    i = i + 1
+                    if not is_save_mode:
+                        TaskAppointment.objects.create(worker_appointed=chosen_worker, task_appointed=task)
+                    assigned_tasks.append({
+                        "task_id": task.id,
+                        "worker_id": chosen_worker.id
+                    })
+                    assignment_steps.append({
+                        "step": i,
+                        "assigned_tasks": list(assigned_tasks)
+                    })
+                    assigned_workers.add(chosen_worker)
+
+        return result
+
+

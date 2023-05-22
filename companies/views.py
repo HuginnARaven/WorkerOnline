@@ -2,13 +2,14 @@ from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters.rest_framework
 from rest_framework import generics, viewsets, status, mixins
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
 from companies.models import Company, Qualification, Task
 from companies.serializers import CompanySerializer, WorkerSerializer, QualificationSerializer, TaskSerializer, \
     TaskAppointmentSerializer, WorkerLogSerializer, WorkerTaskCommentSerializer, TaskRecommendationSerializer, \
-    WorkerReportSerializer
+    WorkerReportSerializer, AutoAppointmentSerializer
 from permission.permission import IsCompany, IsCompanyWorker
 from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment
 
@@ -98,3 +99,13 @@ class WorkerReportView(mixins.RetrieveModelMixin, mixins.ListModelMixin, Generic
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(employer=self.request.user.id)
+
+
+class AutoAppointmentView(generics.RetrieveAPIView):
+    queryset = Company.objects.all()
+    serializer_class = AutoAppointmentSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+
+    def get_object(self):
+        qs = super().get_queryset()
+        return get_object_or_404(qs, id=self.request.user.id)

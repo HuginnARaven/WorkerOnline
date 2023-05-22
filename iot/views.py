@@ -3,9 +3,9 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
-from iot.models import Supervisor
+from iot.models import Supervisor, Offer
 from iot.serializers import SupervisorCompanySerializer, SupervisorOptionsSerializer, SendActivitySerializer, \
-    WorkerPresenceLogSerializer
+    WorkerPresenceLogSerializer, OfferSerializer
 from permission.permission import IsCompany, IsIot
 from workers.models import WorkerLogs
 
@@ -44,3 +44,14 @@ class WorkerPresenceLogView(generics.CreateAPIView):
     queryset = WorkerLogs.objects.all()
     serializer_class = WorkerPresenceLogSerializer
     permission_classes = [IsIot]
+
+
+class OfferCompanyView(viewsets.ModelViewSet, GenericViewSet):
+    queryset = Offer.objects.all()
+    serializer_class = OfferSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+
+    def get_queryset(self):
+        print(self.request.user)
+        qs = super().get_queryset()
+        return qs.filter(company=self.request.user.id)

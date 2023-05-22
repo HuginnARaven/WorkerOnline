@@ -115,6 +115,38 @@ msgstr "наглядач(IoT)"
 msgid "supervisors"
 msgstr "наглядачі(IoT)"
 
+#: .\iot\models.py:46
+msgid "offer"
+msgstr "замовлення"
+
+#: .\iot\models.py:47
+msgid "offers"
+msgstr "замовлення"
+
+#: .\iot\models.py:31
+msgid "Created"
+msgstr "Стоврено"
+
+#: .\iot\models.py:31
+msgid "Received"
+msgstr "Отримано"
+
+#: .\iot\models.py:31
+msgid "IoT creating"
+msgstr "Збірка пристрою"
+
+#: .\iot\models.py:31
+msgid "Delivering"
+msgstr "Доставка"
+
+#: .\iot\models.py:31
+msgid "Completed"
+msgstr "Завершено"
+
+#: .\iot\models.py:31
+msgid "Rejected"
+msgstr "Відхилено"
+
 #: .\iot\serializers.py:46
 msgid "The assigned worker does not exist or belong to your company!"
 msgstr "Обраний працівник не існує або не належить до вашої компанії!"
@@ -131,6 +163,22 @@ msgstr "IoT не має призначеного працівника!"
 msgid "The assigned worker does not have task now!"
 msgstr "Обраний працівник зараз не має незакінченого завдання!"
 
+#: .\users\models.py:26
+msgid "Viewed"
+msgstr "Пререглянуто"
+
+#: .\users\models.py:27
+msgid "Closed"
+msgstr "Закрито"
+
+#: .\users\models.py:39
+msgid "Tech support request"
+msgstr "Запит на технічну підтримку"
+
+#: .\users\models.py:40
+msgid "Tech support requests"
+msgstr "Запити на технічну підтримку"
+
 #: .\users\serializers.py:58
 msgid "Password fields didn't match"
 msgstr "Поля нового пароля не збігаються"
@@ -138,6 +186,19 @@ msgstr "Поля нового пароля не збігаються"
 #: .\users\serializers.py:65
 msgid "Old password is not correct"
 msgstr "Старий пароль неправильний"
+
+#: .\users\serializers.py:105
+msgid "You have too many unread requests!"
+msgstr "У вас занадто багато непрочитаних запитів!"
+
+#: .\users\serializers.py:115
+msgid "You can not change title of request when it is viewed or closed!"
+msgstr "Ви не можете змінювати заголовок запиту якщо він прочитаний або закритий!"
+
+
+#: .\users\serializers.py:115
+msgid "You can not change description of request when it is viewed or closed!"
+msgstr "Ви не можете змінювати опис запиту якщо він прочитаний або закритий!"
 
 #: .\users\views.py:61
 msgid "Password has been changed successfully"
