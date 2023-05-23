@@ -10,17 +10,21 @@ from workers.models import Worker, WorkerLogs, TaskAppointment, WorkerTaskCommen
 class WorkerAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['role'].disabled = True
         self.fields['role'].initial = 'W'
+        self.fields['role'].disabled = True
+        self.fields['role'].required = False
+        instance = getattr(self, 'instance', None)
+        if instance and instance.pk:
+            self.fields['password'].disabled = True
+            self.fields['password'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
 
         if cleaned_data.get("qualification").company != cleaned_data.get("employer"):
-            raise forms.ValidationError(_('Matching error, you are probably trying to set one company and the qualifications of another!'))
-
-        # raw_password = cleaned_data.get('password')
-        # cleaned_data['password'] = make_password(raw_password)
+            raise forms.ValidationError(
+                _('Matching error, you are probably trying to set one company and the qualifications of another!')
+            )
 
         return cleaned_data
 
@@ -32,9 +36,14 @@ class WorkerAdminForm(forms.ModelForm):
 class WorkerAdmin(ExportActionMixin, admin.ModelAdmin):
     form = WorkerAdminForm
 
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.password = make_password(obj.password)
+
+        super().save_model(request, obj, form, change)
+
 
 class WorkersTasksAdminForm(forms.ModelForm):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["time_end"].is_required = False
@@ -57,9 +66,26 @@ class WorkersTasksAdmin(ExportActionModelAdmin, admin.ModelAdmin):
     form = WorkersTasksAdminForm
 
 
+class TaskCommentsAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].is_required = False
+        self.fields["user"].disabled = True
+        self.fields["task_appointment"].is_required = False
+        self.fields["task_appointment"].disabled = True
+
+    class Meta:
+        model = TaskAppointment
+        fields = '__all__'
+
+
+class TaskCommentsAdmin(ExportActionModelAdmin, admin.ModelAdmin):
+    form = TaskCommentsAdminForm
+
+
 admin.site.register(Worker, WorkerAdmin)
 admin.site.register(WorkerLogs, ExportActionModelAdmin)
 admin.site.register(TaskAppointment, WorkersTasksAdmin)
-admin.site.register(WorkerTaskComment)
+admin.site.register(WorkerTaskComment, TaskCommentsAdmin)
 admin.site.register(WorkerSchedule)
 

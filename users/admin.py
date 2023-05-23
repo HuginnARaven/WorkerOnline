@@ -32,9 +32,6 @@ class UserAccountAdmin(ExportActionMixin, admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-    class Meta:
-        verbose_name = 'My image'
-        verbose_name_plural = 'My images'
 
 
 class TechSupportRequestAdmin(ExportActionMixin, admin.ModelAdmin):

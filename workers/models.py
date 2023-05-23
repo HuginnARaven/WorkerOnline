@@ -60,6 +60,7 @@ class WorkerLogs(models.Model):
     LOG_TYPES = [
         ('TA', 'Task appointed'),
         ('TD', 'Task done'),
+        ('TC', 'Task status changed'),
         ('OC', 'Out of working place'),
         ('CL', 'Custom log'),
     ]
@@ -126,8 +127,9 @@ class TaskAppointment(models.Model):
     time_start = models.DateTimeField(auto_now_add=True, null=False)
     time_end = models.DateTimeField(null=True, blank=True)
     deadline = models.DateTimeField(null=False)
+    status = models.CharField(default="", null=True, blank=True)
 
-    task_appointed = models.ForeignKey(Task, on_delete=models.CASCADE, null=False)
+    task_appointed = models.OneToOneField(Task, on_delete=models.CASCADE, null=False, related_name='task_appointment')
     worker_appointed = models.ForeignKey(Worker, on_delete=models.CASCADE, null=False)
 
     def save(self, *args, **kwargs):

@@ -9,6 +9,7 @@ class UserAccount(AbstractUser):
         ('W', 'Worker'),
         ('A', 'Admin'),
     ]
+    email = models.EmailField(_("email address"), unique=True, blank=False, null=FutureWarning)
     last_login = None
     first_name = None
     last_name = None

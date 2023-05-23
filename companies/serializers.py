@@ -33,7 +33,7 @@ class CompanySerializer(serializers.ModelSerializer):
         password = validated_data['password']
         password2 = validated_data['password2']
         if password != password2:
-            raise serializers.ValidationError({'detail': [_('Password do not match!')]})
+            raise serializers.ValidationError({'password': [_('Passwords do not match!')]})
         return Company.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -75,6 +75,17 @@ class TaskSerializer(serializers.ModelSerializer):
             'task_difficulty_info',
         ]
 
+    def validate(self, data):
+        errors = {}
+
+        if data.get('difficulty') and self.context['request'].user.company != data['difficulty'].company:
+            errors.update({'qualification': [_('You cannot use another company`s qualifications!')]})
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
+
     def create(self, validated_data):
         return Task.objects.create(
             title=validated_data['title'],
@@ -86,12 +97,12 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         if TaskAppointment.objects.filter(task_appointed=instance.id):
-            raise serializers.ValidationError({'detail': [_('You can not edit appointed task!')]})
+            raise serializers.ValidationError({'task_appointed': [_('You can not edit appointed task!')]})
 
-        instance.title = validated_data.get('title')
-        instance.description = validated_data.get('description')
-        instance.estimate_hours = validated_data.get('estimate_hours')
-        instance.difficulty = validated_data.get('difficulty')
+        instance.title = validated_data.get('title') or instance.title
+        instance.description = validated_data.get('description') or instance.description
+        instance.estimate_hours = validated_data.get('estimate_hours') or instance.estimate_hours
+        instance.difficulty = validated_data.get('difficulty') or instance.difficulty
 
         return instance
 
@@ -151,18 +162,27 @@ class WorkerSerializer(serializers.ModelSerializer):
             'salary',
         ]
 
+    def validate(self, data):
+        password = data.get('password')
+        password2 = data.get('password2')
+        errors = {}
+
+        if password and password != password2:
+            errors.update({'password': [_('Passwords do not match!')]})
+        if data.get('qualification') and self.context['request'].user.company != data['qualification'].company:
+            errors.update({'qualification': [_('You cannot use another company`s qualifications!')]})
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
+
     def create(self, validated_data):
-        password = validated_data['password']
-        password2 = validated_data['password2']
-        if password != password2:
-            raise serializers.ValidationError({'detail': [_('Password do not match!')]})
-        if self.context['request'].user.company != validated_data['qualification'].company:
-            raise serializers.ValidationError({'detail': [_('You cannot use another company`s qualifications!')]})
 
         return Worker.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
-            password=make_password(password),
+            password=make_password(validated_data['password']),
             role='W',
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
@@ -173,7 +193,6 @@ class WorkerSerializer(serializers.ModelSerializer):
             day_end=validated_data['day_end'],
             salary=validated_data['salary'],
         )
-
 
     def update(self, instance, validated_data):
         password = validated_data.get('password')
@@ -206,12 +225,14 @@ class TaskAppointmentSerializer(serializers.ModelSerializer):
     difficulty_for_worker = serializers.FloatField(read_only=True)
     time_start = serializers.DateTimeField(read_only=True)
     time_end = serializers.DateTimeField(read_only=True)
+    status = serializers.CharField(read_only=True)
 
     class Meta:
         model = TaskAppointment
         fields = [
             'id',
             'is_done',
+            'status',
             'time_start',
             'time_end',
             'difficulty_for_worker',
@@ -223,41 +244,49 @@ class TaskAppointmentSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        if not Worker.objects.filter(id=data['worker_appointed'].id,
-                                     employer=self.context['request'].user.company):
-            raise serializers.ValidationError({'detail': [
-                _('The assigned worker does not exist or does not belong to your company!')
-            ]})
+        errors = {}
+
+        if not Worker.objects.filter(id=data['worker_appointed'].id, employer=self.context['request'].user.company):
+            errors.update(
+                {'worker_appointed': [_('The assigned worker does not exist or does not belong to your company!')]})
         if not Task.objects.filter(id=data['task_appointed'].id,
                                    company=self.context['request'].user.company):
-            raise serializers.ValidationError({'detail': [
+            errors.update({'task_appointed': [
                 _('The assigned task does not exist or does not belong to your company!')
             ]})
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
         if data['task_appointed'].difficulty.modifier > data['worker_appointed'].qualification.modifier:
-            raise serializers.ValidationError({'detail': [
+            errors.update({'difficulty': [
                 _('There is higher difficulty of the task then employee can handle!')
             ]})
         if data['task_appointed'].estimate_hours > data['worker_appointed'].working_hours:
-            raise serializers.ValidationError({'detail': [
+            errors.update({'estimated_hours': [
                 _('There are more estimated hours of the task then the working hours of the employee per week!')
             ]})
+
+        if TaskAppointment.objects.filter(worker_appointed=data['worker_appointed'], is_done=False):
+            errors.update({'worker_appointed': [
+                _('The appointed worker already has active task!')
+            ]})
+
+        if TaskAppointment.objects.filter(task_appointed=data['task_appointed']):
+            errors.update({'task_appointed': [
+                _('This task has been appointed already!')
+            ]})
+
+        if errors:
+            raise serializers.ValidationError(errors)
 
         return data
 
     def create(self, validated_data):
-        if TaskAppointment.objects.filter(worker_appointed=validated_data['worker_appointed'], is_done=False):
-            raise serializers.ValidationError({'detail': [
-                _('The appointed worker already has active task!')
-            ]})
-
-        if TaskAppointment.objects.filter(task_appointed=validated_data['task_appointed']):
-            raise serializers.ValidationError({'detail': [
-                _('This task has been appointed already!')
-            ]})
-
         return TaskAppointment.objects.create(
             task_appointed=validated_data['task_appointed'],
             worker_appointed=validated_data['worker_appointed'],
+            deadline=validated_data["deadline"].astimezone(pytz.utc)
         )
 
     def update(self, instance, validated_data):
@@ -270,8 +299,8 @@ class TaskAppointmentSerializer(serializers.ModelSerializer):
 
 
 class WorkerLogSerializer(serializers.ModelSerializer):
-    task_info = TaskSerializer(read_only=True, source="task")
-    worker_info = WorkerSerializer(read_only=True, source="worker")
+    # task_info = TaskSerializer(read_only=True, source="task")
+    # worker_info = WorkerSerializer(read_only=True, source="worker")
     datetime = serializers.DateTimeField(read_only=True)
     localized_datetime = serializers.SerializerMethodField()
 
@@ -286,9 +315,9 @@ class WorkerLogSerializer(serializers.ModelSerializer):
             'type',
             'description',
             'worker',
-            'worker_info',
+            # 'worker_info',
             'task',
-            'task_info',
+            # 'task_info',
         ]
 
     def get_localized_datetime(self, obj):
@@ -299,7 +328,7 @@ class WorkerLogSerializer(serializers.ModelSerializer):
 class CompanyTaskCommentSerializer(serializers.ModelSerializer):
     time_created = serializers.DateTimeField(read_only=True)
     username = serializers.CharField(read_only=True, source='user.username')
-
+    localized_time_created = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = WorkerTaskComment
         fields = [
@@ -307,6 +336,7 @@ class CompanyTaskCommentSerializer(serializers.ModelSerializer):
             'username',
             'text',
             'time_created',
+            'localized_time_created',
             'task_appointment',
         ]
 
@@ -318,9 +348,16 @@ class CompanyTaskCommentSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_localized_time_created(self, obj):
+        localized_datetime = timezone.localtime(obj.time_created, obj.user.company.get_timezone())
+        return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
     def update(self, instance, validated_data):
         if validated_data.get('task_appointment') and validated_data.get('task_appointment') != instance.task_appointment:
             raise serializers.ValidationError({'task_appointment': [_('You can not change task for comment!')]})
+
+        if self.context['request'].user != instance.user:
+            raise serializers.ValidationError({'user': [_('You can not change another people comments!')]})
 
         instance.text = validated_data.get('text') or instance.text
 
@@ -520,7 +557,9 @@ class AutoAppointmentSerializer(serializers.ModelSerializer):
                         })
                     i = i + 1
                     if not is_save_mode:
-                        TaskAppointment.objects.create(worker_appointed=chosen_worker, task_appointed=task)
+                        TaskAppointment.objects.create(worker_appointed=chosen_worker,
+                                                       task_appointed=task,
+                                                       deadline=chosen_worker.get_recommended_deadline_for_task(task, timezone.now()))
                     assigned_tasks.append({
                         "task_id": task.id,
                         "worker_id": chosen_worker.id

@@ -38,10 +38,8 @@ msgid "tasks"
 msgstr "завдання"
 
 #: .\companies\serializers.py:35 .\companies\serializers.py:157
-#, fuzzy
-#| msgid "Password fields didn't match"
-msgid "Password do not match!"
-msgstr "Поля нового пароля не збігаються"
+msgid "Passwords do not match!"
+msgstr "Поля паролів не збігаються"
 
 #: .\companies\serializers.py:88
 msgid "You can not edit appointed task!"
@@ -180,7 +178,7 @@ msgid "Tech support requests"
 msgstr "Запити на технічну підтримку"
 
 #: .\users\serializers.py:58
-msgid "Password fields didn't match"
+msgid "New password fields didn't match"
 msgstr "Поля нового пароля не збігаються"
 
 #: .\users\serializers.py:65

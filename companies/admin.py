@@ -2,34 +2,29 @@ from django.contrib import admin
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
+from import_export.admin import ExportActionMixin, ExportActionModelAdmin
 
 from companies.models import Company, Qualification, Task
 
 
-class CompanyAdminForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['role'].disabled = True
-        self.fields['role'].initial = 'C'
+class CompanyAdmin(ExportActionMixin, admin.ModelAdmin):
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['role'].initial = 'C'
+        form.base_fields['role'].disabled = True
+        form.base_fields['role'].required = False
+        if obj:
+            form.base_fields['password'].disabled = True
+            form.base_fields['password'].required = False
 
-    # def clean(self):
-    #     cleaned_data = super().clean()
-    #     raw_password = cleaned_data.get('password')
-    #     cleaned_data['password'] = make_password(raw_password)
-    #
-    #     return cleaned_data
+        return form
 
-    class Meta:
-        model = Company
-        fields = '__all__'
+    def save_model(self, request, obj, form, change):
+        # Apply make_password only when creating a new instance
+        if not change:  # Checking if instance is being created
+            obj.password = make_password(obj.password)
 
-
-class CompanyAdmin(admin.ModelAdmin):
-    form = CompanyAdminForm
-    # def get_form(self, request, obj=None, **kwargs):
-    #     if obj is None:
-    #         kwargs['form'] = CompanyAdminForm
-    #     return super().get_form(request, obj, **kwargs)
+        super().save_model(request, obj, form, change)
 
 
 class TaskAdminForm(forms.ModelForm):
@@ -46,11 +41,20 @@ class TaskAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class TaskAdmin(admin.ModelAdmin):
+class TaskAdmin(ExportActionMixin, admin.ModelAdmin):
     form = TaskAdminForm
 
 
+class QualificationAdmin(ExportActionMixin, admin.ModelAdmin):
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj:
+            form.base_fields['company'].disabled = True
+            form.base_fields['company'].required = False
+
+        return form
+
+
 admin.site.register(Company, CompanyAdmin)
-admin.site.register(Qualification)
+admin.site.register(Qualification, QualificationAdmin)
 admin.site.register(Task, TaskAdmin)
-# admin.site.register(Supervisor)

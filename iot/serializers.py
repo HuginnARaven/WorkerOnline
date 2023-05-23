@@ -33,6 +33,7 @@ class SupervisorCompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Supervisor
         fields = [
+            "id",
             "in_admin_mode",
             "worker",
             "is_active",
@@ -71,6 +72,7 @@ class OfferSerializer(serializers.ModelSerializer):
     class Meta:
         model = Offer
         fields = [
+            "id",
             "status",
             "created_at",
             "localized_created_at",

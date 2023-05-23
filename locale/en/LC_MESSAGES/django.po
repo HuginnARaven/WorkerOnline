@@ -35,7 +35,7 @@ msgid "tasks"
 msgstr ""
 
 #: .\companies\serializers.py:35 .\companies\serializers.py:157
-msgid "Password do not match!"
+msgid "Passwords do not match!"
 msgstr ""
 
 #: .\companies\serializers.py:88
@@ -127,7 +127,7 @@ msgid "The assigned worker does not have task now!"
 msgstr ""
 
 #: .\users\serializers.py:58
-msgid "Password fields didn't match"
+msgid "New password fields didn't match"
 msgstr ""
 
 #: .\users\serializers.py:65

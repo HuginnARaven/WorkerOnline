@@ -88,7 +88,7 @@ class TaskRecommendationView(mixins.RetrieveModelMixin, mixins.ListModelMixin, G
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(company=self.request.user.id)
+        return qs.filter(company=self.request.user.id, task_appointment=None)
 
 
 class WorkerReportView(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):

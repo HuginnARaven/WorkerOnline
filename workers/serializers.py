@@ -33,9 +33,16 @@ class WorkerTaskCommentSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
+        errors = {}
         if validated_data.get('task_appointment') and validated_data.get(
                 'task_appointment') != instance.task_appointment:
-            raise serializers.ValidationError({'task_appointment': [_('You can not change task for comment!')]})
+            errors.update({'task_appointment': [_('You can not change task for comment!')]})
+
+        if self.context['request'].user != instance.user:
+            errors.update({'user': [_('You can not change another people comments!')]})
+
+        if errors:
+            raise serializers.ValidationError(errors)
 
         instance.text = validated_data.get('text') or instance.text
         instance.save()
@@ -53,7 +60,6 @@ class WorkerTaskCommentSerializer(serializers.ModelSerializer):
 class TaskDoneSerializer(serializers.ModelSerializer):
     task_info = TaskSerializer(read_only=True, source="task_appointed")
     difficulty_for_worker = serializers.FloatField(read_only=True)
-    is_done = serializers.BooleanField(read_only=True)
     comments = WorkerTaskCommentSerializer(many=True, read_only=True)
     time_start = serializers.DateTimeField(read_only=True)
     time_end = serializers.DateTimeField(read_only=True)
@@ -63,6 +69,7 @@ class TaskDoneSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'is_done',
+            "status",
             'comments',
             'time_start',
             'time_end',
@@ -72,13 +79,18 @@ class TaskDoneSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         if instance.is_done:
-            raise serializers.ValidationError({'detail': [
-                'Task already was done!'
+            raise serializers.ValidationError({'is_done': [
+                'Task already was done, you can`t change it!'
             ]})
+        is_done = validated_data.get("is_done") or instance.is_done
+        instance.is_done = is_done
+        initial_status = instance.status
+        if is_done:
+            instance.time_end = timezone.now()
+        instance.status = validated_data.get("status") or instance.status
 
-        instance.is_done = True
-        instance.time_end = timezone.now()
-        instance.save()
+        if is_done or validated_data.get("status") != initial_status:
+            instance.save()
 
         return instance
 
