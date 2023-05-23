@@ -2,9 +2,52 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _
 
-from companies.serializers import TaskSerializer, WorkerTaskCommentSerializer
-from workers.models import TaskAppointment, WorkerLogs
+from companies.serializers import TaskSerializer
+from workers.models import TaskAppointment, WorkerLogs, WorkerTaskComment
+
+
+class WorkerTaskCommentSerializer(serializers.ModelSerializer):
+    time_created = serializers.DateTimeField(read_only=True)
+    username = serializers.CharField(read_only=True, source='user.username')
+
+    class Meta:
+        model = WorkerTaskComment
+        fields = [
+            'id',
+            'username',
+            'text',
+            'time_created',
+            'task_appointment',
+        ]
+
+    def validate(self, data):
+        if data.get('task_appointment') and not TaskAppointment.objects.filter(id=data.get('task_appointment').id,
+                                                                               worker_appointed=self.context[
+                                                                                   'request'].user.worker):
+            raise serializers.ValidationError({'task_appointment': [
+                _('The task_appointment does not exist or does not belong to your!')
+            ]})
+
+        return data
+
+    def update(self, instance, validated_data):
+        if validated_data.get('task_appointment') and validated_data.get(
+                'task_appointment') != instance.task_appointment:
+            raise serializers.ValidationError({'task_appointment': [_('You can not change task for comment!')]})
+
+        instance.text = validated_data.get('text') or instance.text
+        instance.save()
+
+        return instance
+
+    def create(self, validated_data):
+        return WorkerTaskComment.objects.create(
+            text=validated_data['text'],
+            task_appointment=validated_data['task_appointment'],
+            user=self.context['request'].user
+        )
 
 
 class TaskDoneSerializer(serializers.ModelSerializer):

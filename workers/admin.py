@@ -2,8 +2,9 @@ from django.contrib import admin
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
+from import_export.admin import ExportActionMixin, ExportActionModelAdmin
 
-from workers.models import Worker, WorkerLogs, TaskAppointment, WorkerTaskComment
+from workers.models import Worker, WorkerLogs, TaskAppointment, WorkerTaskComment, WorkerSchedule
 
 
 class WorkerAdminForm(forms.ModelForm):
@@ -28,13 +29,8 @@ class WorkerAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class WorkerAdmin(admin.ModelAdmin):
+class WorkerAdmin(ExportActionMixin, admin.ModelAdmin):
     form = WorkerAdminForm
-
-    # def get_form(self, request, obj=None, **kwargs):
-    #     if obj is None:
-    #         kwargs['form'] = WorkerAdminForm
-    #     return super().get_form(request, obj, **kwargs)
 
 
 class WorkersTasksAdminForm(forms.ModelForm):
@@ -57,12 +53,13 @@ class WorkersTasksAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class WorkersTasksAdmin(admin.ModelAdmin):
+class WorkersTasksAdmin(ExportActionModelAdmin, admin.ModelAdmin):
     form = WorkersTasksAdminForm
 
 
 admin.site.register(Worker, WorkerAdmin)
-admin.site.register(WorkerLogs)
+admin.site.register(WorkerLogs, ExportActionModelAdmin)
 admin.site.register(TaskAppointment, WorkersTasksAdmin)
 admin.site.register(WorkerTaskComment)
+admin.site.register(WorkerSchedule)
 

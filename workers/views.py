@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
 from permission.permission import IsWorker
-from workers.models import TaskAppointment, WorkerLogs
-from workers.serializers import TaskDoneSerializer, WorkersLogSerializer
+from workers.models import TaskAppointment, WorkerLogs, WorkerTaskComment
+from workers.serializers import TaskDoneSerializer, WorkersLogSerializer, WorkerTaskCommentSerializer
 
 
 class TaskDoneView(mixins.UpdateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
@@ -31,3 +31,13 @@ class WorkersLogView(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericVi
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(worker=self.request.user.id, )
+
+
+class WorkerTaskCommentView(viewsets.ModelViewSet):
+    queryset = WorkerTaskComment.objects.all()
+    serializer_class = WorkerTaskCommentSerializer
+    permission_classes = [IsAuthenticated, IsWorker, ]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(task_appointment__worker_appointed=self.request.user.id)

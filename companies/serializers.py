@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.fields import Field
 from django.core import serializers as core_serializers
 from django.utils.translation import gettext_lazy as _
+from django.db.models import F
 
 from companies.models import Company, Qualification, Task
 from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment
@@ -218,6 +219,7 @@ class TaskAppointmentSerializer(serializers.ModelSerializer):
             'task_info',
             'worker_appointed',
             'worker_info',
+            'deadline',
         ]
 
     def validate(self, data):
@@ -294,13 +296,15 @@ class WorkerLogSerializer(serializers.ModelSerializer):
         return localized_datetime.strftime('%Y-%m-%d %H:%M:%S')
 
 
-class WorkerTaskCommentSerializer(serializers.ModelSerializer):
+class CompanyTaskCommentSerializer(serializers.ModelSerializer):
     time_created = serializers.DateTimeField(read_only=True)
+    username = serializers.CharField(read_only=True, source='user.username')
 
     class Meta:
         model = WorkerTaskComment
         fields = [
             'id',
+            'username',
             'text',
             'time_created',
             'task_appointment',
@@ -323,6 +327,13 @@ class WorkerTaskCommentSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+    def create(self, validated_data):
+        return WorkerTaskComment.objects.create(
+            text=validated_data['text'],
+            task_appointment=validated_data['task_appointment'],
+            user=self.context['request'].user
+        )
 
 
 class TaskRecommendationSerializer(serializers.ModelSerializer):
@@ -351,6 +362,7 @@ class TaskRecommendationSerializer(serializers.ModelSerializer):
         if not workers:
             return _('There are no workers to recommend for this task!')
         result = []
+
         for worker in workers:
             if not TaskAppointment.objects.filter(is_done=False, worker_appointed=worker):
                 result.append({
@@ -359,6 +371,7 @@ class TaskRecommendationSerializer(serializers.ModelSerializer):
                     "last_name": worker.last_name,
                     "productivity": worker.productivity,
                     "working_hours": worker.working_hours,
+                    "approx_finsh_date": worker.get_recommended_deadline_for_task(obj, datetime.datetime.now(tz=worker.employer.get_timezone())),
                 })
 
         if not result:
@@ -389,10 +402,12 @@ class WorkerReportSerializer(serializers.ModelSerializer):
         ]
 
     def get_worker_general_statistics(self, obj):
+
         worker_logs = WorkerLogs.objects.filter(worker=obj)
         result = {
             "tasks_done": worker_logs.filter(type__exact="TD").count(),
-            "times_out_of_working_place": worker_logs.filter(type__exact="OC").count()
+            "times_out_of_working_place": worker_logs.filter(type__exact="OC").count(),
+            "times_deadline_not_met": TaskAppointment.objects.filter(worker_appointed=obj, is_done=True, deadline__gt=F('time_end')).count()
         }
 
         return result
@@ -408,9 +423,11 @@ class WorkerReportSerializer(serializers.ModelSerializer):
                 "estimate_hours": task_appointment.task_appointed.estimate_hours,
                 "times_out_of_working_place": logs.filter(type__exact="OC").count(),
                 "task_performance": task_appointment.get_task_performance(),
+                "is_deadline_met": (task_appointment.deadline < task_appointment.time_end),
                 "spent_working_hours": (task_appointment.task_appointed.estimate_hours / task_appointment.get_task_performance()),
                 "time_start": timezone.localtime(task_appointment.time_start, task_appointment.worker_appointed.employer.get_timezone()).strftime('%Y-%m-%d %H:%M:%S'),
-                "time_end": timezone.localtime(task_appointment.time_end, task_appointment.worker_appointed.employer.get_timezone()).strftime('%Y-%m-%d %H:%M:%S')
+                "time_end": timezone.localtime(task_appointment.time_end, task_appointment.worker_appointed.employer.get_timezone()).strftime('%Y-%m-%d %H:%M:%S'),
+                "deadline": task_appointment.deadline
             })
 
         return result
@@ -457,7 +474,6 @@ class AutoAppointmentSerializer(serializers.ModelSerializer):
             })
 
         return result
-
 
     def get_previous_appointments(self, obj):
         appointments = TaskAppointment.objects.filter(task_appointed__company=obj)

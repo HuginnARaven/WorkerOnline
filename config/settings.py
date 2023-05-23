@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'workers.apps.WorkersConfig',
     'companies.apps.CompaniesConfig',
     'iot.apps.IotConfig',
+
+    'drf_api_logger',
 ]
 
 MIDDLEWARE = [
@@ -67,7 +69,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+
+    'drf_api_logger.middleware.api_logger_middleware.APILoggerMiddleware',
 ]
+
+
+DRF_API_LOGGER_DATABASE = True
+
+DRF_LOGGER_QUEUE_MAX_SIZE = 1
+
+DRF_LOGGER_INTERVAL = 1
+
+DRF_API_LOGGER_PATH_TYPE = 'ABSOLUTE'
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 

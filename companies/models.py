@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 import pytz
@@ -44,6 +46,7 @@ class Task(models.Model):
     class Meta:
         verbose_name = _('task')
         verbose_name_plural = _('tasks')
+
 
     def __str__(self):
         return f"{self.title}({self.company.name})"

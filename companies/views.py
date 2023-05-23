@@ -8,8 +8,8 @@ from rest_framework.viewsets import GenericViewSet
 
 from companies.models import Company, Qualification, Task
 from companies.serializers import CompanySerializer, WorkerSerializer, QualificationSerializer, TaskSerializer, \
-    TaskAppointmentSerializer, WorkerLogSerializer, WorkerTaskCommentSerializer, TaskRecommendationSerializer, \
-    WorkerReportSerializer, AutoAppointmentSerializer
+    TaskAppointmentSerializer, WorkerLogSerializer, TaskRecommendationSerializer, \
+    WorkerReportSerializer, AutoAppointmentSerializer, CompanyTaskCommentSerializer
 from permission.permission import IsCompany, IsCompanyWorker
 from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment
 
@@ -71,9 +71,9 @@ class WorkerLogView(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericVie
         return qs.filter(task__company=self.request.user.id)
 
 
-class WorkerTaskCommentView(viewsets.ModelViewSet):
+class CompanyTaskCommentView(viewsets.ModelViewSet):
     queryset = WorkerTaskComment.objects.all()
-    serializer_class = WorkerTaskCommentSerializer
+    serializer_class = CompanyTaskCommentSerializer
     permission_classes = [IsAuthenticated, IsCompany, ]
 
     def get_queryset(self):

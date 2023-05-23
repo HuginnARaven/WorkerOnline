@@ -1,12 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.hashers import make_password
+from import_export.admin import ExportActionMixin
 
 from users.models import UserAccount, TechSupportRequest
 
 from django.contrib import admin
 
 
-class UserAccountAdmin(admin.ModelAdmin):
+class UserAccountAdmin(ExportActionMixin, admin.ModelAdmin):
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         form.base_fields['role'].initial = 'A'
@@ -30,8 +32,12 @@ class UserAccountAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
+    class Meta:
+        verbose_name = 'My image'
+        verbose_name_plural = 'My images'
 
-class TechSupportRequestAdmin(admin.ModelAdmin):
+
+class TechSupportRequestAdmin(ExportActionMixin, admin.ModelAdmin):
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         form.base_fields['user'].disabled = True

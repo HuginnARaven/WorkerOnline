@@ -20,6 +20,38 @@ class Worker(UserAccount):
     employer = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)
     qualification = models.ForeignKey(Qualification, on_delete=models.CASCADE, null=False)
 
+    def get_recommended_deadline_for_task(self, task: Task, time_start: datetime.datetime) -> datetime.datetime:
+        estimate_hours_with_productivity = task.estimate_hours * self.productivity
+        worker_day_start = datetime.datetime.combine(datetime.date.today(), self.day_start)
+        worker_day_end = datetime.datetime.combine(datetime.date.today(), self.day_end)
+        working_days_on_task = datetime.timedelta(hours=estimate_hours_with_productivity) / (worker_day_end - worker_day_start)
+        approx_finsh_date = (time_start + datetime.timedelta(days=working_days_on_task))
+
+        time_diff = approx_finsh_date - time_start
+
+        dates_on_task = [time_start + datetime.timedelta(days=i) for i in range(time_diff.days + 1)]
+        worker_schedule = WorkerSchedule.objects.get(worker=self)
+        for date in dates_on_task:
+            if worker_schedule.is_weekend(date):
+                dates_on_task -= datetime.timedelta(days=1)
+
+        # if worker_day_end.time() > approx_finsh_date.time() > worker_day_start.time():
+        #     return approx_finsh_date
+        #
+        # elif worker_day_end.time() < approx_finsh_date.time():
+        #     print("1")
+        #     worker_timediff = datetime.timedelta(days=1) - (worker_day_end - worker_day_start)
+        #     overtime = datetime.datetime.combine(datetime.date.today(), approx_finsh_date.time()) - worker_day_end
+        #     approx_finsh_date = worker_timediff - overtime
+        #
+        # elif worker_day_start.time() > approx_finsh_date.time():
+        #     print("2")
+        #     worker_timediff = datetime.timedelta(days=1) - (worker_day_end - worker_day_start)
+        #     undertime = worker_day_start - datetime.datetime.combine(datetime.date.today(), approx_finsh_date.time())
+        #     approx_finsh_date += worker_timediff - undertime
+
+        return approx_finsh_date
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}({self.username})"
 
@@ -48,11 +80,52 @@ class WorkerLogs(models.Model):
         return f"{self.date}({self.time})"
 
 
+class WorkerSchedule(models.Model):
+    monday = models.BooleanField(default=True)
+    tuesday = models.BooleanField(default=True)
+    wednesday = models.BooleanField(default=True)
+    thursday = models.BooleanField(default=True)
+    friday = models.BooleanField(default=True)
+    saturday = models.BooleanField(default=True)
+    sunday = models.BooleanField(default=True)
+
+    worker = models.OneToOneField(Worker, on_delete=models.CASCADE, null=False, verbose_name="schedule")
+
+    def is_weekend(self, weekday: datetime.datetime) -> bool:
+        """
+        This method check in workers`s schedule if given weekday weekend. It checks it in employer timezone.
+        :param weekday: day of week to check
+        :return: True if it is weekend False if it isn`t
+        """
+        localized_today_weekday = timezone.localtime(weekday, self.worker.employer.get_timezone()).weekday()
+        match localized_today_weekday:
+            case 0:
+                return not self.monday
+            case 1:
+                return not self.tuesday
+            case 2:
+                return not self.wednesday
+            case 3:
+                return not self.thursday
+            case 4:
+                return not self.friday
+            case 5:
+                return not self.saturday
+            case 5:
+                return not self.sunday
+            case _:
+                return False
+
+    def __str__(self):
+        return f'Schedule of {self.worker.username}'
+
+
 class TaskAppointment(models.Model):
     is_done = models.BooleanField(default=False, null=True, blank=True)
     difficulty_for_worker = models.FloatField(default=1, null=True, blank=True)
     time_start = models.DateTimeField(auto_now_add=True, null=False)
     time_end = models.DateTimeField(null=True, blank=True)
+    deadline = models.DateTimeField(null=False)
 
     task_appointed = models.ForeignKey(Task, on_delete=models.CASCADE, null=False)
     worker_appointed = models.ForeignKey(Worker, on_delete=models.CASCADE, null=False)
@@ -78,6 +151,19 @@ class TaskAppointment(models.Model):
 
             task_timediff = time_end - time_start
             days_on_task = time_end.day - time_start.day
+
+            dates_on_task = [time_start + datetime.timedelta(days=i) for i in range(task_timediff.days + 1)]
+            worker_schedule = WorkerSchedule.objects.get(worker=self.worker_appointed)
+            for date in dates_on_task:
+                if worker_schedule.is_weekend(date) and days_on_task != 0:
+                    days_on_task -= 1
+                    task_timediff -= datetime.timedelta(days=1)
+
+            if worker_schedule.is_weekend(time_end):
+                task_day_start = datetime.datetime.combine(time_end.date(), time_start.time())
+                task_day_end = datetime.datetime.combine(time_end.date(), time_end.time())
+                task_timediff -= (task_day_end - task_day_start)
+
             if time_end.day != time_start.day:
                 worker_timediff = datetime.timedelta(days=1) - (worker_day_end - worker_day_start)
                 task_timediff = task_timediff - (worker_timediff * days_on_task)
@@ -85,7 +171,7 @@ class TaskAppointment(models.Model):
                     overtime = datetime.datetime.combine(datetime.date.today(), time_end.time()) - worker_day_end
                     task_timediff = task_timediff - overtime
             elif time_end.time() > worker_day_end.time():
-                overtime = datetime.datetime.combine(datetime.date.today(),  time_end.time()) - worker_day_end
+                overtime = datetime.datetime.combine(datetime.date.today(), time_end.time()) - worker_day_end
                 task_timediff = task_timediff - overtime
             if (task_timediff.total_seconds() / 3600) > 0:
                 result = self.task_appointed.estimate_hours / (task_timediff.total_seconds() / 3600)
@@ -106,6 +192,7 @@ class WorkerTaskComment(models.Model):
     text = models.TextField(null=False)
 
     task_appointment = models.ForeignKey(TaskAppointment, on_delete=models.CASCADE, null=False, related_name='comments')
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, null=False, related_name='comments')
 
     class Meta:
         verbose_name = _('task comment')
