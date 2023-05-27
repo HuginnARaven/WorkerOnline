@@ -4,8 +4,9 @@ from rest_framework import generics, viewsets, status, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
-from permission.permission import IsWorker
+
 from workers.models import TaskAppointment, WorkerLogs, WorkerTaskComment
+from workers.permission import IsWorker
 from workers.serializers import TaskDoneSerializer, WorkersLogSerializer, WorkerTaskCommentSerializer
 
 

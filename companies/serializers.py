@@ -5,13 +5,11 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.fields import Field
-from django.core import serializers as core_serializers
 from django.utils.translation import gettext_lazy as _
 from django.db.models import F
 
 from companies.models import Company, Qualification, Task
-from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment
+from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment, WorkerSchedule
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -107,42 +105,30 @@ class TaskSerializer(serializers.ModelSerializer):
         return instance
 
 
-# class TimeWithTimezoneField(Field):
-#
-#     default_error_messages = {
-#         'invalid': 'Time has wrong format, expecting %H:%M:%S%z.',
-#     }
-#
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#
-#     def to_internal_value(self, value):
-#         try:
-#             parsed = datetime.datetime.combine(date=datetime.date.today(),
-#                                                time=datetime.datetime.strptime(value, "%H:%M:%S").time(),
-#                                                tzinfo=self.context['request'].user.company.get_timezone())
-#         except (ValueError, TypeError) as e:
-#             pass
-#         else:
-#             return parsed
-#         self.fail('invalid')
-#
-#     def to_representation(self, value):
-#         if not value:
-#             return None
-#
-#         if isinstance(value, str):
-#             return value
-#         return timezone.make_naive(value, self.context['request'].user.company.get_timezone()).strftime("%H:%M:%S%z")
+class WorkerScheduleSerializer(serializers.ModelSerializer):
+    worker_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = WorkerSchedule
+        fields = [
+            "id",
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+            "worker_id"
+        ]
 
 
 class WorkerSerializer(serializers.ModelSerializer):
     password = serializers.CharField(style={'input_type': 'password'}, write_only=True, validators=[validate_password])
     password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
     worker_qualification_info = QualificationSerializer(read_only=True, source="qualification")
+    worker_schedule = WorkerScheduleSerializer(read_only=True, source="schedule")
     id = serializers.IntegerField(read_only=True)
-    # day_start = TimeWithTimezoneField()
-    # day_end = TimeWithTimezoneField()
 
     class Meta:
         model = Worker
@@ -160,6 +146,7 @@ class WorkerSerializer(serializers.ModelSerializer):
             'day_start',
             'day_end',
             'salary',
+            'worker_schedule',
         ]
 
     def validate(self, data):
@@ -486,7 +473,7 @@ class AutoAppointmentSerializer(serializers.ModelSerializer):
         ]
 
     def get_workers(self, obj):
-        workers = Worker.objects.filter(employer=obj).order_by("-productivity")
+        workers = Worker.objects.filter(employer=obj).order_by("-productivity", "qualification__modifier", "working_hours")
         result = []
         for worker in workers:
             result.append({
@@ -525,7 +512,7 @@ class AutoAppointmentSerializer(serializers.ModelSerializer):
 
     def get_new_appointments(self, obj):
         is_save_mode = self.context['request'].query_params.get("is_save_mode") != 'false'
-        sorted_workers = Worker.objects.filter(employer=obj).order_by("-productivity")
+        sorted_workers = Worker.objects.filter(employer=obj).order_by("-productivity", "qualification__modifier", "working_hours")
         tasks = Task.objects.filter(company=obj)
         assigned_tasks = []
         assignment_steps = []

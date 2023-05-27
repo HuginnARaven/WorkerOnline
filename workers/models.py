@@ -35,21 +35,6 @@ class Worker(UserAccount):
             if worker_schedule.is_weekend(date):
                 dates_on_task -= datetime.timedelta(days=1)
 
-        # if worker_day_end.time() > approx_finsh_date.time() > worker_day_start.time():
-        #     return approx_finsh_date
-        #
-        # elif worker_day_end.time() < approx_finsh_date.time():
-        #     print("1")
-        #     worker_timediff = datetime.timedelta(days=1) - (worker_day_end - worker_day_start)
-        #     overtime = datetime.datetime.combine(datetime.date.today(), approx_finsh_date.time()) - worker_day_end
-        #     approx_finsh_date = worker_timediff - overtime
-        #
-        # elif worker_day_start.time() > approx_finsh_date.time():
-        #     print("2")
-        #     worker_timediff = datetime.timedelta(days=1) - (worker_day_end - worker_day_start)
-        #     undertime = worker_day_start - datetime.datetime.combine(datetime.date.today(), approx_finsh_date.time())
-        #     approx_finsh_date += worker_timediff - undertime
-
         return approx_finsh_date
 
     def __str__(self):
@@ -90,7 +75,7 @@ class WorkerSchedule(models.Model):
     saturday = models.BooleanField(default=True)
     sunday = models.BooleanField(default=True)
 
-    worker = models.OneToOneField(Worker, on_delete=models.CASCADE, null=False, verbose_name="schedule")
+    worker = models.OneToOneField(Worker, on_delete=models.CASCADE, null=False, related_name="schedule")
 
     def is_weekend(self, weekday: datetime.datetime) -> bool:
         """

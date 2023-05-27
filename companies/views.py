@@ -5,13 +5,17 @@ from rest_framework import generics, viewsets, status, mixins
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+from django.core.cache import cache
 
 from companies.models import Company, Qualification, Task
 from companies.serializers import CompanySerializer, WorkerSerializer, QualificationSerializer, TaskSerializer, \
     TaskAppointmentSerializer, WorkerLogSerializer, TaskRecommendationSerializer, \
-    WorkerReportSerializer, AutoAppointmentSerializer, CompanyTaskCommentSerializer
-from permission.permission import IsCompany, IsCompanyWorker
-from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment
+    WorkerReportSerializer, AutoAppointmentSerializer, CompanyTaskCommentSerializer, WorkerScheduleSerializer
+from companies.permission import IsCompany, IsCompanyWorker
+from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment, WorkerSchedule
 
 
 class CompanySinUpView(mixins.CreateModelMixin, GenericViewSet):
@@ -24,9 +28,20 @@ class WorkerView(viewsets.ModelViewSet):
     serializer_class = WorkerSerializer
     permission_classes = [IsAuthenticated, IsCompanyWorker, ]
 
+    @method_decorator(cache_page(60))
+    def list(self, *args, **kwargs):
+        print("chached")
+        return super().list(*args, **kwargs)
+
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(employer=self.request.user.id)
+
+
+class WorkerScheduleView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,  GenericViewSet):
+    queryset = WorkerSchedule.objects.all()
+    serializer_class = WorkerScheduleSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
 
 
 class QualificationView(viewsets.ModelViewSet):

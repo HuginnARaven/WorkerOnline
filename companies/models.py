@@ -47,6 +47,5 @@ class Task(models.Model):
         verbose_name = _('task')
         verbose_name_plural = _('tasks')
 
-
     def __str__(self):
         return f"{self.title}({self.company.name})"

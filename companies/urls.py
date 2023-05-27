@@ -3,7 +3,8 @@ from django.urls import path, include
 from rest_framework import routers
 
 from companies.views import CompanySinUpView, WorkerView, QualificationView, TaskView, TaskAppointmentView, \
-    WorkerLogView, CompanyTaskCommentView, TaskRecommendationView, WorkerReportView, AutoAppointmentView
+    WorkerLogView, CompanyTaskCommentView, TaskRecommendationView, WorkerReportView, AutoAppointmentView, \
+    WorkerScheduleView
 
 company_router = routers.SimpleRouter()
 company_router.register(r'singup', CompanySinUpView, basename='singup')
@@ -15,6 +16,7 @@ company_router.register(r'appointment', TaskAppointmentView, basename='appointme
 company_router.register(r'comment-task', CompanyTaskCommentView, basename='comment-task')
 company_router.register(r'task-recommendation', TaskRecommendationView, basename='task-recommendation')
 company_router.register(r'worker-report', WorkerReportView, basename='worker-report')
+company_router.register(r'worker-schedule', WorkerScheduleView, basename='worker-schedule')
 
 urlpatterns = [
     path('company/', include(company_router.urls)),

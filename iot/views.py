@@ -4,10 +4,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from companies.permission import IsCompany
 from iot.models import Supervisor, Offer
+from iot.permission import IsIot
 from iot.serializers import SupervisorCompanySerializer, SupervisorOptionsSerializer, SendActivitySerializer, \
     WorkerPresenceLogSerializer, OfferSerializer
-from permission.permission import IsCompany, IsIot
+
 from workers.models import WorkerLogs
 
 

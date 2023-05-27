@@ -5,6 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils.translation import gettext_lazy as _
 from rest_framework.viewsets import GenericViewSet
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 
 from companies.models import Company
 from users.models import UserAccount, TechSupportRequest
@@ -42,6 +45,10 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
+
+    @method_decorator(cache_page(60 * 2))
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         if self.request.user.role == 'C':

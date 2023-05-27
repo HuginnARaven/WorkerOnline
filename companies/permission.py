@@ -1,7 +1,5 @@
 from rest_framework import permissions
 
-from iot.models import Supervisor
-
 
 class IsCompany(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -28,29 +26,3 @@ class IsCompanyWorker(permissions.BasePermission):
         if obj.employer.id == request.user.id:
             return True
         return False
-
-
-class IsWorker(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if request.user.role == 'W':
-            return True
-        return False
-
-
-class IsAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if request.user.role == 'A':
-            return True
-        return False
-
-
-class IsIot(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if Supervisor.objects.filter(serial_number=request.META.get("HTTP_SERIAL_NUMBER")):
-            return True
-        return False
-
-    # def has_object_permission(self, request, view, obj):
-    #     if request.META.get("HTTP_SERIAL_NUMBER") == obj.serial_number:
-    #         return True
-    #     return False
