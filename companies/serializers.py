@@ -8,8 +8,8 @@ from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.db.models import F
 
-from companies.models import Company, Qualification, Task
-from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment, WorkerSchedule
+from companies.models import Company, Qualification, Task, TaskVoting
+from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment, WorkerSchedule, TaskVote
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -61,6 +61,9 @@ class QualificationSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     task_difficulty_info = QualificationSerializer(read_only=True, source="difficulty")
+    is_done = serializers.SerializerMethodField(read_only=True)
+    is_appointed = serializers.SerializerMethodField(read_only=True)
+    recommended_workers = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Task
@@ -71,6 +74,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'estimate_hours',
             'difficulty',
             'task_difficulty_info',
+            'is_done',
+            'is_appointed',
+            'recommended_workers',
         ]
 
     def validate(self, data):
@@ -83,6 +89,53 @@ class TaskSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
 
         return data
+
+    def get_is_done(self, obj):
+        if TaskAppointment.objects.filter(task_appointed=obj, is_done=True):
+            return True
+        return False
+
+    def get_is_appointed(self, obj):
+        if TaskAppointment.objects.filter(task_appointed=obj):
+            return True
+        return False
+
+
+    def get_recommended_workers(self, obj):
+        if TaskAppointment.objects.filter(task_appointed=obj):
+            return {}
+        estimate_hours = obj.estimate_hours
+        difficulty = obj.difficulty
+        company = obj.company
+        workers = Worker.objects.filter(working_hours__gte=estimate_hours,
+                                        qualification=difficulty,
+                                        employer=company).order_by("-productivity")
+
+        if not workers:
+            workers = Worker.objects.filter(working_hours__gte=estimate_hours,
+                                            qualification__modifier__gte=difficulty.modifier,
+                                            employer=company).order_by("-productivity")
+        if not workers:
+            return _('There are no workers to recommend for this task!')
+        result = []
+        workers = sorted(workers, key=lambda a: a.count_remaining_working_hours(), reverse=True)
+        for worker in workers:
+            if not TaskAppointment.objects.filter(is_done=False, worker_appointed=worker):
+                result.append({
+                    "id": worker.id,
+                    "first_name": worker.first_name,
+                    "last_name": worker.last_name,
+                    "productivity": worker.productivity,
+                    "working_hours": worker.working_hours,
+                    "approx_finsh_date": worker.get_recommended_deadline_for_task(obj, datetime.datetime.now(
+                        tz=worker.employer.get_timezone())),
+                })
+
+        if not result:
+            return _(
+                'There are no workers to recommend for this task for now! (probably some workers that can be recommended are busy now)')
+
+        return result
 
     def create(self, validated_data):
         return Task.objects.create(
@@ -101,6 +154,8 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.description = validated_data.get('description') or instance.description
         instance.estimate_hours = validated_data.get('estimate_hours') or instance.estimate_hours
         instance.difficulty = validated_data.get('difficulty') or instance.difficulty
+
+        instance.save()
 
         return instance
 
@@ -331,6 +386,7 @@ class TaskAppointmentSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.task_appointed = validated_data.get('task_appointed') or instance.task_appointed
         instance.worker_appointed = validated_data.get('worker_appointed') or instance.worker_appointed
+        instance.deadline = validated_data.get('deadline') or instance.deadline
 
         instance.save()
 
@@ -398,6 +454,7 @@ class TaskRecommendationSerializer(serializers.ModelSerializer):
 
         if not result:
             return _('There are no workers to recommend for this task for now! (probably some workers that can be recommended are busy now)')
+
         return result
 
 
@@ -568,4 +625,117 @@ class AutoAppointmentSerializer(serializers.ModelSerializer):
                     })
                     assigned_workers.add(chosen_worker)
 
+        return result
+
+
+class VotingSerializer(serializers.ModelSerializer):
+    voting_results = serializers.SerializerMethodField(read_only=True)
+    class Meta:
+        model = TaskVoting
+        fields = [
+            "id",
+            "title",
+            "description",
+            "voting_tasks",
+            "deadline",
+            "is_active",
+            "voting_results",
+        ]
+
+    def validate_voting_tasks(self, value):
+        company_done_tasks = Task.objects.filter(company=self.context['request'].user.company)
+        for task in value:
+            if task not in company_done_tasks:
+                raise serializers.ValidationError({
+                    "voting_tasks": f"Task '{task.title}' is done or not belongs to your company"
+                })
+        return value
+
+    def get_voting_results(self, obj):
+        tasks = obj.voting_tasks.all()
+        votes = obj.votes.all()
+        winner = ["", 0]
+        result = {"winner": "", "tasks_info": []}
+        for task in tasks:
+            score = 0
+            task_votes = []
+            for vote in votes:
+                if vote.task == task:
+                    expertness = vote.worker.qualification.modifier * vote.worker.productivity
+                    task_votes.append({"worker": vote.worker.username, "score": vote.score, "expertness": round(expertness, 3)})
+                    score += vote.score * expertness
+            result["tasks_info"].append({"id": task.id,"title": task.title, "score": round(score, 3), "votes": task_votes})
+            if winner[1] < score:
+                winner = [task.title, score]
+
+        result["winner"] = winner[0]
+        return result
+
+    def create(self, validated_data):
+        voting_tasks = validated_data["voting_tasks"]
+        instance = TaskVoting.objects.create(
+            title=validated_data["title"],
+            description=validated_data["description"],
+            deadline=validated_data["deadline"],
+            is_active=validated_data["is_active"],
+            company=self.context['request'].user.company,
+            max_score=len(voting_tasks)
+        )
+        for voting_task in voting_tasks:
+            instance.voting_tasks.add(voting_task)
+        return instance
+
+    def update(self, instance, validated_data):
+        if TaskVote.objects.filter(voting=instance) and not instance.is_active:
+            raise serializers.ValidationError({
+                "votes": "You can not edit voting that already has votes and ended!"
+            })
+
+        instance.title = validated_data.get('title') or instance.title
+        instance.description = validated_data.get('description') or instance.description
+        #instance.voting_tasks = validated_data.get('voting_tasks') or instance.title
+        instance.deadline = validated_data.get('deadline') or instance.deadline
+        instance.is_active = validated_data.get('is_active')
+        voting_tasks = validated_data["voting_tasks"] or instance.voting_tasks
+        instance.max_score = len(voting_tasks)
+        for voting_task in voting_tasks:
+            instance.voting_tasks.add(voting_task)
+
+        instance.save()
+
+        return instance
+
+
+class VotingResultSerializer(serializers.ModelSerializer):
+    voting_results = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = TaskVoting
+        fields = [
+            "title",
+            "description",
+            "voting_tasks",
+            "deadline",
+            "is_active",
+            "voting_results",
+        ]
+
+    def get_voting_results(self, obj):
+        tasks = obj.voting_tasks.all()
+        votes = obj.votes.all()
+        winner = ["", 0]
+        result = {"winner": "", "tasks_info": []}
+        for task in tasks:
+            score = 0
+            task_votes = []
+            for vote in votes:
+                if vote.task == task:
+                    expertness = vote.worker.qualification.modifier * vote.worker.productivity
+                    task_votes.append({"worker": vote.worker.username, "score": vote.score, "expertness": round(expertness, 3)})
+                    score += vote.score * expertness
+            result["tasks_info"].append({"id": task.id,"title": task.title, "score": round(score, 3), "votes": task_votes})
+            if winner[1] < score:
+                winner = [task.title, score]
+
+        result["winner"] = winner[0]
         return result

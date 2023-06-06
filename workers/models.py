@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from users.models import UserAccount
-from companies.models import Company, Task, Qualification
+from companies.models import Company, Task, Qualification, TaskVoting
 
 
 class Worker(UserAccount):
@@ -195,3 +195,14 @@ class WorkerTaskComment(models.Model):
 
     def __str__(self):
         return f"{self.task_appointment.task_appointed.title} ({self.time_created})"
+
+
+class TaskVote(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, null=False)
+    score = models.IntegerField(null=False)
+
+    voting = models.ForeignKey(TaskVoting, on_delete=models.CASCADE, null=False, related_name='votes')
+    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+        unique_together = ('worker', 'task', 'voting', 'score')

@@ -15,6 +15,8 @@ class UserAccountSerializer(serializers.ModelSerializer):
 
 
 class CompanyProfileSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(read_only=True)
+
     class Meta:
         model = Company
         fields = [
@@ -23,6 +25,7 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'name',
             'description',
             'timezone',
+            'role',
         ]
 
 
@@ -31,6 +34,7 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
     worker_salary = serializers.IntegerField(read_only=True, source="salary")
     worker_day_start = serializers.TimeField(read_only=True, source="day_start")
     worker_day_end = serializers.TimeField(read_only=True, source="day_end")
+    role = serializers.CharField(read_only=True)
 
     class Meta:
         model = Worker
@@ -43,6 +47,7 @@ class WorkerProfileSerializer(serializers.ModelSerializer):
             'worker_day_start',
             'worker_day_end',
             'worker_salary',
+            'role',
         ]
 
 

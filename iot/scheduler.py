@@ -11,13 +11,14 @@ def update_inactive_iot(last_active_minutes=20):
     iot = Supervisor.objects.filter(is_active=True, last_active__lt=curr_time_tw_ago)
     if iot:
         iot.update(is_active=False)
-        if iot.worker:
-            task = TaskAppointment.objects.filter(worker_appointed=iot.worker, is_done=False)
-            if task:
-                WorkerLogs.objects.create(task=task,
-                                          worker=iot.worker,
-                                          type='SL',
-                                          description=f'Supervisor was inactive during {last_active_minutes} minutes!')
+        for i in iot:
+            if i.worker:
+                task = TaskAppointment.objects.filter(worker_appointed=i.worker, is_done=False)
+                if task:
+                    WorkerLogs.objects.create(task=task,
+                                              worker=i.worker,
+                                              type='SL',
+                                              description=f'Supervisor was inactive during {last_active_minutes} minutes!')
         print("Inactive IoTs detected and updated!")
     else:
         print("Inactive IoTs not detected!")

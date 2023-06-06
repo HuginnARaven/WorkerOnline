@@ -139,3 +139,17 @@ class WorkerPresenceLogSerializer(serializers.ModelSerializer):
             worker=supervisor_worker,
             task=worker_curr_task.task_appointed
         )
+
+
+class SupervisorServerTimeSerializer(serializers.ModelSerializer):
+    server_time = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Supervisor
+        fields = [
+            "server_time",
+        ]
+
+    def get_server_time(self, obj):
+        localized_now = timezone.localtime(timezone.now(), obj.company.get_timezone())
+        return localized_now.strftime('%H:%M:%S')

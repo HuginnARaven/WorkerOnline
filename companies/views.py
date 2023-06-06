@@ -13,10 +13,11 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie, vary_on_headers
 from django.core.cache import cache, caches
 
-from companies.models import Company, Qualification, Task
+from companies.models import Company, Qualification, Task, TaskVoting
 from companies.serializers import CompanySerializer, WorkerSerializer, QualificationSerializer, TaskSerializer, \
     TaskAppointmentSerializer, WorkerLogSerializer, TaskRecommendationSerializer, \
-    WorkerReportSerializer, AutoAppointmentSerializer, CompanyTaskCommentSerializer, WorkerScheduleSerializer
+    WorkerReportSerializer, AutoAppointmentSerializer, CompanyTaskCommentSerializer, WorkerScheduleSerializer, \
+    VotingSerializer, VotingResultSerializer
 from companies.permission import IsCompany, IsCompanyWorker, IsCompanyOwner
 from workers.models import Worker, TaskAppointment, WorkerLogs, WorkerTaskComment, WorkerSchedule
 
@@ -64,7 +65,7 @@ class TaskView(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated, IsCompany, ]
-    pagination_class = CustomStandartPagination
+    # pagination_class = CustomStandartPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -146,3 +147,23 @@ class AutoAppointmentView(generics.RetrieveAPIView):
     def get_object(self):
         qs = super().get_queryset()
         return get_object_or_404(qs, id=self.request.user.id)
+
+
+class VotingView(viewsets.ModelViewSet):
+    queryset = TaskVoting.objects.all()
+    serializer_class = VotingSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(company=self.request.user.company)
+
+
+class GetVotingResult(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+    queryset = TaskVoting.objects.all()
+    serializer_class = VotingResultSerializer
+    permission_classes = [IsAuthenticated, IsCompany, ]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(company=self.request.user.company)

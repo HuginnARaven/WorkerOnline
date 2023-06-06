@@ -4,7 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
 from import_export.admin import ExportActionMixin, ExportActionModelAdmin
 
-from workers.models import Worker, WorkerLogs, TaskAppointment, WorkerTaskComment, WorkerSchedule
+from workers.models import Worker, WorkerLogs, TaskAppointment, WorkerTaskComment, WorkerSchedule, TaskVote
 
 
 class WorkerAdminForm(forms.ModelForm):
@@ -88,4 +88,5 @@ admin.site.register(WorkerLogs, ExportActionModelAdmin)
 admin.site.register(TaskAppointment, WorkersTasksAdmin)
 admin.site.register(WorkerTaskComment, TaskCommentsAdmin)
 admin.site.register(WorkerSchedule)
+admin.site.register(TaskVote)
 

@@ -4,7 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
 from import_export.admin import ExportActionMixin
 
-from companies.models import Company, Qualification, Task
+from companies.models import Company, Qualification, Task, TaskVoting
 
 
 class CompanyAdmin(ExportActionMixin, admin.ModelAdmin):
@@ -57,3 +57,4 @@ class QualificationAdmin(ExportActionMixin, admin.ModelAdmin):
 admin.site.register(Company, CompanyAdmin)
 admin.site.register(Qualification, QualificationAdmin)
 admin.site.register(Task, TaskAdmin)
+admin.site.register(TaskVoting)

@@ -16,7 +16,7 @@ class Supervisor(models.Model):
                                      blank=False)
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)
-    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, null=True, blank=True)
+    worker = models.ForeignKey(Worker, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name = _('supervisor')

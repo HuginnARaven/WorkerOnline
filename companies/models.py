@@ -47,3 +47,15 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.title}({self.company.name})"
+
+
+class TaskVoting(models.Model):
+    title = models.CharField(max_length=100, null=False)
+    description = models.CharField(max_length=255, null=True)
+    voting_tasks = models.ManyToManyField(Task)
+    deadline = models.DateTimeField(null=False)
+    is_active = models.BooleanField(default=True)
+    max_score = models.IntegerField(default=10)
+    min_score = models.IntegerField(default=0)
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=False)

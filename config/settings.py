@@ -56,7 +56,9 @@ INSTALLED_APPS = [
     'workers.apps.WorkersConfig',
     'companies.apps.CompaniesConfig',
     'iot.apps.IotConfig',
+    'dbbackup_ui',
 
+    'dbbackup',
     'drf_api_logger',
 ]
 
@@ -114,7 +116,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'WorkerOnline',
+        'NAME': 'WorkerOnline(moti)',
         'USER': 'postgres',
         'PASSWORD': os.environ.get('DB_PASS'),
         'HOST': 'localhost',
@@ -128,6 +130,9 @@ CACHES = {
         "LOCATION": os.path.join(BASE_DIR, "workeronline_cache"),
     }
 }
+
+DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+DBBACKUP_STORAGE_OPTIONS = {'location':  os.path.join(BASE_DIR, "backups")}
 
 # CACHES = {
 #     "default": {
@@ -250,7 +255,7 @@ JAZZMIN_SETTINGS = {
         {"name": _("Home"),  "url": "admin:index", "permissions": ["auth.view_user"]},
 
         # external url that opens in a new window (Permissions can be added)
-        # {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        {"name": "Database", "url": "http://127.0.0.1:8000/i18n/admin/backups/backup-database/", "new_window": True},
 
         # model admin to link to (Permissions checked against model)
         {"model": "auth.User"},

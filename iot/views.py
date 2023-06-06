@@ -8,7 +8,7 @@ from companies.permission import IsCompany
 from iot.models import Supervisor, Offer
 from iot.permission import IsIot
 from iot.serializers import SupervisorCompanySerializer, SupervisorOptionsSerializer, SendActivitySerializer, \
-    WorkerPresenceLogSerializer, OfferSerializer
+    WorkerPresenceLogSerializer, OfferSerializer, SupervisorServerTimeSerializer
 
 from workers.models import WorkerLogs
 
@@ -26,6 +26,16 @@ class SupervisorCompanyView(mixins.RetrieveModelMixin, mixins.ListModelMixin, mi
 class SupervisorOptionsView(generics.RetrieveAPIView):
     queryset = Supervisor.objects.all()
     serializer_class = SupervisorOptionsSerializer
+    permission_classes = [IsIot]
+
+    def get_object(self):
+        qs = super().get_queryset()
+        return get_object_or_404(qs, serial_number=self.request.META.get("HTTP_SERIAL_NUMBER"), worker__isnull=False)
+
+
+class ServerTimeView(generics.RetrieveAPIView):
+    queryset = Supervisor.objects.all()
+    serializer_class = SupervisorServerTimeSerializer
     permission_classes = [IsIot]
 
     def get_object(self):
