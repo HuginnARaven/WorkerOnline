@@ -1,0 +1,13 @@
+.env
+.venv
+env/
+venv/
+*.log
+*.pot
+*.pyc
+__pycache__
+.idea/
+*.djcache
+*.bin
+*.psql
+*.psql.bin
