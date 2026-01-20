@@ -1,0 +1,73 @@
+<resources>
+
+    <string name="app_name" translatable="false">WorkerOnline</string>
+    <string name="action_settings">Налаштування</string>
+    <string name="txt_error_message" translatable="false">%1$S*</string>
+
+    <!--  Page titles  -->
+
+    <string name="txt_my_tasks">Мої завдання</string>
+    <string name="txt_my_logs">Мої логи</string>
+    <string name="txt_settings">Налаштування</string>
+
+    <!--  Tasks  -->
+
+    <string name="txt_edit_task">Редагування завдання</string>
+    <string name="txt_edit_time_start">Початок</string>
+    <string name="txt_edit_time_end">Кінець</string>
+    <string name="txt_edit_deadline">Дедлайн</string>
+    <string name="txt_task_status">Статус</string>
+    <string name="txt_task_is_done">Зроблено</string>
+    <string name="txt_task_status_hint">Напишіть свій статус для цього завдання</string>
+    <string name="txt_task_submit">Зберегти</string>
+    <string name="btn_task_goto_info">Інформація про завдання</string>
+    <string name="btn_task_goto_comments">Коментарі</string>
+
+    <!--  Details  -->
+
+    <string name="txt_description_details">Опис:</string>
+
+    <!-- Comments -->
+
+    <string name="txt_comment_page_title">Коментарі</string>
+    <string name="txt_comments_for">Коментар для:</string>
+    <string name="txt_comment_text">Текст коментаря</string>
+    <string name="btn_comment_action">Коментар</string>
+
+    <!--  Login  -->
+
+    <string name="txt_login_title">Ласкаво просимо працівнику!</string>
+    <string name="txt_login_subtitle">Увійдіть, щоб отримати доступ до своїх завдань</string>
+    <string name="txt_login_username">Ім\'я користувача</string>
+    <string name="txt_login_password">Пароль</string>
+    <string name="txt_username_hint" translatable="false">username</string>
+    <string name="txt_password">Пароль</string>
+    <string name="txt_password_hint" translatable="false">........</string>
+    <string name="txt_signIn">Вхід</string>
+
+    <!--  Profile  -->
+
+    <string name="txt_profile_username" translatable="false">Ім\'я користувача</string>
+    <string name="txt_profile_email" translatable="false">Електронна пошта</string>
+    <string name="txt_profile_qualification" translatable="false">Кваліфікація</string>
+    <string name="txt_profile_day_start" translatable="false">Початок рбочого дня</string>
+    <string name="txt_profile_day_end" translatable="false">Кінець рбочого дня</string>
+    <string name="txt_profile_salary" translatable="false">Зарплата</string>
+    <string name="btn_goto_logs" translatable="false">Переглянути статистику</string>
+    <string name="btn_profile_logout" translatable="false">Вийти</string>
+
+    <!--  Validation  -->
+
+    <string name="txt_valid_all_credentials">Будь ласка, надайте облікові дані</string>
+    <string name="txt_valid_password_length">Довжина пароля має бути більше 5</string>
+
+    <!--  Settings  -->
+
+    <string name="txt_settings_title">Налаштування</string>
+    <string name="txt_select_lang">Select Language</string>
+    <string name="txt_lang_uk">Українська</string>
+    <string name="txt_lang_en">Англійська</string>
+    <string name="txt_username">Ім\'я користувача</string>
+
+
+</resources>
